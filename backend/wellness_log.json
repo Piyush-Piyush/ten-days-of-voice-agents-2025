@@ -1,0 +1,16 @@
+[
+  {
+    "goals": [
+      "complete backlog project"
+    ],
+    "energy_level": "higher side",
+    "mood": "great"
+  },
+  {
+    "mood": "demotivated",
+    "energy_level": "lower side",
+    "goals": [
+      "work on and complete project"
+    ]
+  }
+]
