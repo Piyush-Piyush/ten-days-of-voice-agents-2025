@@ -1,0 +1,24 @@
+[
+  {
+    "id": "variables",
+    "title": "Variables",
+    "summary": "Variables act like labeled containers that store values so your program can reuse or update them later. A variable name should describe the data it holds and the same name always points to the most recent assigned value.",
+    "sample_question": "What is a variable and why is it useful when writing programs?",
+    "teach_back_prompt": "Walk me through how you would explain variables to someone who has never coded before."
+  },
+  {
+    "id": "loops",
+    "title": "Loops",
+    "summary": "Loops let you repeat an action multiple times without copying the same code. For loops are great when you know how many repetitions you need, while while loops keep running until a condition changes.",
+    "sample_question": "Explain the difference between a for loop and a while loop.",
+    "teach_back_prompt": "Teach me how loops help eliminate repetitive code, and include an example."
+  },
+  {
+    "id": "conditionals",
+    "title": "Conditionals",
+    "summary": "Conditionals let your program make decisions. An if statement checks a condition and only runs its block when the condition is true. Optional elif and else branches cover alternate paths.",
+    "sample_question": "How do if/elif/else statements control the flow of a program?",
+    "teach_back_prompt": "Describe a real-world situation that could be modeled with if/elif/else logic."
+  }
+]
+
