@@ -1,13 +1,10 @@
-"""Day 4 Teach-the-Tutor Agent - Active recall coaching with three modes."""
-
 import json
 import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
-from  livekit.plugins import silero  # <-- import at top
-from livekit.plugins import murf, google, deepgram, noise_cancellation
+from livekit.plugins import silero, murf, google, deepgram, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -27,7 +24,6 @@ from livekit.agents import (
 )
 
 logger = logging.getLogger("agent")
-
 load_dotenv(".env.local")
 
 LEARNING_MODES = ("learn", "quiz", "teach_back")
@@ -56,7 +52,6 @@ VOICE_PERSONAS = {
 @dataclass
 class TutorConcept:
     """Structured representation of one concept."""
-
     id: str
     title: str
     summary: str
@@ -67,7 +62,6 @@ class TutorConcept:
 @dataclass
 class ConceptMastery:
     """Simple counters that let the tutor track progress."""
-
     times_learned: int = 0
     times_quizzed: int = 0
     times_taught_back: int = 0
@@ -78,7 +72,6 @@ class ConceptMastery:
 @dataclass
 class TutorSessionState:
     """Conversation-specific session state."""
-
     current_mode: Optional[str] = None
     current_concept_id: Optional[str] = None
     mastery: Dict[str, ConceptMastery] = field(default_factory=dict)
@@ -109,7 +102,7 @@ class TutorContentLibrary:
 
     @classmethod
     def from_env(cls) -> "TutorContentLibrary":
-        default_path = Path(__file__).resolve().parents[2] / "shared-data" / "day4_tutor_content.json"
+        default_path = Path(__file__).resolve().parents[2] / "shared-data" / "materials.json"
         configured = os.getenv("DAY4_TUTOR_CONTENT_PATH")
         path = Path(configured) if configured else default_path
         return cls.from_path(path)
@@ -136,7 +129,6 @@ class TutorContentLibrary:
 @dataclass
 class Userdata:
     """Holds both the session state and the content library."""
-
     state: TutorSessionState
     content: TutorContentLibrary
 
@@ -147,30 +139,27 @@ class TeachTheTutorAgent(Agent):
     def __init__(self, *, userdata: Userdata) -> None:
         instructions = f"""You are Teach-the-Tutor, an active recall coach that helps users master core coding concepts.
 Key behaviors:
-- Greet the learner, mention Murf Falcon voices, and immediately ask which learning mode they prefer (learn, quiz, teach_back). Do not dive into content until a mode is selected via the set_learning_mode tool.
-- Whenever the learner asks to switch, call set_learning_mode again and acknowledge the new Murf Falcon voice (Matthew for learn, Alicia for quiz, Ken for teach_back).
-- Focus on one concept at a time. Offer the list of concepts using list_concepts when needed, then lock in the user's choice with set_focus_concept before explaining or quizzing.
-- Use describe_current_concept for summaries in learn mode, get_quiz_prompt for quiz mode, and get_teach_back_prompt before you ask the learner to explain the idea back.
-- Track mastery every time you finish a mode-specific interaction by calling record_mastery_event with the appropriate mode and an optional score (0–100). Provide encouraging qualitative feedback referencing the stored summary or sample question.
-- Allow learners to ask for progress or their weakest concept. Use get_mastery_snapshot to summarize what the agent knows so far.
-- Keep responses concise, use plain conversational language, and explain any jargon.
-- Never stay silent—respond to every user utterance promptly.
-- Always mention that Murf Falcon provides the fast voices powering the experience at least once per conversation.
+- Greet the learner and immediately ask which learning mode they prefer (learn, quiz, teach_back).
+- When the learner requests a mode change, call set_learning_mode to switch voices (Matthew for learn, Alicia for quiz, Ken for teach_back).
+- Focus on one concept at a time. Use list_concepts, then set_focus_concept before explaining or quizzing.
+- Use describe_current_concept for learn mode, get_quiz_prompt for quiz mode, and get_teach_back_prompt for teach_back mode.
+- Track mastery by calling record_mastery_event with scores (0–100) and feedback.
+- Keep responses concise and conversational.
 
 Mode-specific guidance:
-- Learn mode (Matthew): calm walkthroughs that paraphrase the summary and invite quick check-ins.
-- Quiz mode (Alicia): energetic questioning. Ask one question at a time, wait for the response, then give short feedback plus a follow-up or offer to switch.
-- Teach_back mode (Ken): prompt the learner to explain the concept using get_teach_back_prompt, listen carefully, then score their explanation (0–100) with clear coaching feedback. Motivate them and suggest what to improve next time.
+- Learn mode (Matthew): calm walkthroughs
+- Quiz mode (Alicia): energetic questioning
+- Teach_back mode (Ken): supportive coaching
 
-You have access to function tools for managing modes, content, and mastery. Use them frequently so every response is grounded in the JSON content."""
+Use function tools frequently to stay grounded in the JSON content."""
 
         super().__init__(instructions=instructions)
 
     async def on_agent_speech_committed(self, ctx: RunContext[Userdata], message: str) -> None:
-        logger.info(f"Agent said: {message}")
+        logger.info(f"🤖 Agent said: {message}")
 
     async def on_user_speech_committed(self, ctx: RunContext[Userdata], message: str) -> None:
-        logger.info(f"User said: {message}")
+        logger.info(f"👤 User said: {message}")
 
     def _require_concept(self, ctx: RunContext[Userdata]) -> TutorConcept:
         state = ctx.userdata.state
@@ -180,25 +169,36 @@ You have access to function tools for managing modes, content, and mastery. Use 
             raise ToolError(str(exc)) from exc
 
     def _apply_voice_persona(self, ctx: RunContext[Userdata], mode: str) -> None:
+        """Apply voice change - with fallback to TTS replacement if update_options fails"""
         persona = VOICE_PERSONAS[mode]
         tts_engine = ctx.session.tts
+        
         if not tts_engine:
             logger.warning("Cannot switch voices: session has no TTS engine configured.")
             return
 
+        # Try update_options first (faster, no interruption)
         update_cb = getattr(tts_engine, "update_options", None)
-        if not callable(update_cb):
-            logger.warning(
-                "TTS engine %s does not support dynamic voice switching.",
-                getattr(tts_engine, "provider", "unknown"),
-            )
-            return
+        if callable(update_cb):
+            try:
+                update_cb(voice=persona["voice"], style=persona["style"])
+                logger.info(f"✅ Voice updated to {persona['display']} for {mode} mode (update_options)")
+                return
+            except Exception as exc:
+                logger.warning(f"update_options failed: {exc}, falling back to TTS replacement")
 
+        # Fallback: Create new TTS and replace (more reliable but may cause brief pause)
         try:
-            update_cb(voice=persona["voice"], style=persona["style"])
-            logger.info("Switched Murf voice to %s for %s mode.", persona["display"], mode)
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Failed to update TTS voice for mode %s: %s", mode, exc)
+            new_tts = murf.TTS(
+                voice=persona["voice"],
+                style=persona["style"],
+                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),  # ✅ Fixed
+                text_pacing=True,
+            )
+            ctx.session.tts = new_tts
+            logger.info(f"✅ Voice switched to {persona['display']} for {mode} mode (TTS replacement)")
+        except Exception as exc:
+            logger.error(f"Failed to switch TTS voice for mode {mode}: {exc}")
 
     @function_tool
     async def list_concepts(self, ctx: RunContext[Userdata]) -> str:
@@ -251,8 +251,8 @@ You have access to function tools for managing modes, content, and mastery. Use 
         persona = VOICE_PERSONAS[normalized]
         self._apply_voice_persona(ctx, normalized)
         return (
-            f"Switched to {normalized} mode. Murf Falcon voice {persona['display']} is now live "
-            f"({persona['tone']}). Let the learner know the new vibe and continue."
+            f"Switched to {normalized} mode. Voice {persona['display']} is now active "
+            f"({persona['tone']})."
         )
 
     @function_tool
@@ -278,8 +278,7 @@ You have access to function tools for managing modes, content, and mastery. Use 
             mastery.last_feedback = feedback
         return (
             f"Mastery updated for {target_concept} after {normalized} mode. "
-            f"Latest score: {mastery.last_score if mastery.last_score is not None else 'n/a'}. "
-            f"Feedback noted."
+            f"Latest score: {mastery.last_score if mastery.last_score is not None else 'n/a'}."
         )
 
     @function_tool
@@ -318,19 +317,14 @@ You have access to function tools for managing modes, content, and mastery. Use 
 
 def prewarm(proc: JobProcess):
     """Prewarm models and load tutor content."""
-
     proc.userdata["vad"] = silero.VAD.load()
     proc.userdata["tutor_content"] = TutorContentLibrary.from_env()
 
 
-
 async def entrypoint(ctx: JobContext):
-    """Entry point for Day 4 active recall coach."""
-    
+    """Entry point for Day 4 active recall coach with smooth voice switching."""
 
-    ctx.log_context_fields = {
-        "room": ctx.room.name,
-    }
+    ctx.log_context_fields = {"room": ctx.room.name}
 
     content = ctx.proc.userdata.get("tutor_content", TutorContentLibrary.from_env())
     state = TutorSessionState(current_concept_id=content.list_concepts()[0].id)
@@ -343,8 +337,8 @@ async def entrypoint(ctx: JobContext):
         tts=murf.TTS(
             voice=VOICE_PERSONAS["learn"]["voice"],
             style=VOICE_PERSONAS["learn"]["style"],
-            tokenizer=tokenize.basic.WordTokenizer(),
-            text_pacing=False,
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),  # ✅ Fixed
+            text_pacing=True,  # Can enable with SentenceTokenizer
         ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
@@ -358,13 +352,38 @@ async def entrypoint(ctx: JobContext):
         metrics.log_metrics(ev.metrics)
         usage_collector.collect(ev.metrics)
 
+    # 🔥 KEY IMPROVEMENT: Direct mode detection for instant voice switching
     @session.on("user_speech_committed")
     def _on_user_speech(ev):
-        logger.info(f"✅ User speech: {ev.text}")
+        """Detect mode keywords BEFORE LLM thinks about it"""
+        text = ev.text.lower()
+        logger.info(f"👤 User speech: {text}")
+        
+        # Detect mode change keywords and apply voice immediately
+        detected_mode = None
+        if "learn" in text and "mode" in text:
+            detected_mode = "learn"
+        elif "quiz" in text and "mode" in text:
+            detected_mode = "quiz"
+        elif ("teach back" in text or "teachback" in text or "teach-back" in text) and "mode" in text:
+            detected_mode = "teach_back"
+        
+        # Apply voice change immediately if mode detected
+        if detected_mode:
+            userdata.state.current_mode = detected_mode
+            agent = session.agent
+            if isinstance(agent, TeachTheTutorAgent):
+                # Create temporary context for voice switching
+                temp_ctx = type('obj', (object,), {
+                    'userdata': userdata,
+                    'session': session
+                })()
+                agent._apply_voice_persona(temp_ctx, detected_mode)
+                logger.info(f"🚀 Instant mode switch to {detected_mode} detected from user speech")
 
     @session.on("agent_speech_committed")
     def _on_agent_speech(ev):
-        logger.info(f"✅ Agent speech: {ev.text}")
+        logger.info(f"🤖 Agent speech: {ev.text}")
 
     @session.on("error")
     def _on_error(ev):
@@ -372,7 +391,7 @@ async def entrypoint(ctx: JobContext):
 
     async def log_usage():
         summary = usage_collector.get_summary()
-        logger.info(f"Usage: {summary}")
+        logger.info(f"📊 Usage: {summary}")
 
     ctx.add_shutdown_callback(log_usage)
 
@@ -387,9 +406,8 @@ async def entrypoint(ctx: JobContext):
     )
 
     await ctx.connect()
-    logger.info("Day 4 Teach-the-Tutor agent is live and listening.")
+    logger.info("✨ Day 4 Teach-the-Tutor agent with smooth voice switching is live!")
 
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
-
