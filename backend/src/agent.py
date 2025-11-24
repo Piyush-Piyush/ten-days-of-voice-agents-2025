@@ -23,11 +23,13 @@ from livekit.agents import (
     tokenize,
 )
 
-logger = logging.getLogger("agent")
+# Initialize logger
+agent_logger = logging.getLogger("agent")
 load_dotenv(".env.local")
 
-LEARNING_MODES = ("learn", "quiz", "teach_back")
-VOICE_PERSONAS = {
+AVAILABLE_MODES = ("learn", "quiz", "teach_back")
+
+MODE_VOICE_CONFIG = {
     "learn": {
         "voice": "en-US-matthew",
         "style": "Conversation",
@@ -50,8 +52,7 @@ VOICE_PERSONAS = {
 
 
 @dataclass
-class TutorConcept:
-    """Structured representation of one concept."""
+class LearningConcept:
     id: str
     title: str
     summary: str
@@ -60,8 +61,8 @@ class TutorConcept:
 
 
 @dataclass
-class ConceptMastery:
-    """Simple counters that let the tutor track progress."""
+class ProgressTracker:
+    """Tracks learner's progress metrics."""
     times_learned: int = 0
     times_quizzed: int = 0
     times_taught_back: int = 0
@@ -70,74 +71,74 @@ class ConceptMastery:
 
 
 @dataclass
-class TutorSessionState:
-    """Conversation-specific session state."""
+class SessionContext:
+    """Manages current session state and progress."""
     current_mode: Optional[str] = None
     current_concept_id: Optional[str] = None
-    mastery: Dict[str, ConceptMastery] = field(default_factory=dict)
+    mastery: Dict[str, ProgressTracker] = field(default_factory=dict)
 
-    def ensure_mastery(self, concept_id: str) -> ConceptMastery:
+    def get_or_create_tracker(self, concept_id: str) -> ProgressTracker:
         if concept_id not in self.mastery:
-            self.mastery[concept_id] = ConceptMastery()
+            self.mastery[concept_id] = ProgressTracker()
         return self.mastery[concept_id]
 
 
-class TutorContentLibrary:
-    """Loads and serves concept content from JSON."""
-
-    def __init__(self, concepts: List[TutorConcept]):
+class ContentRepository:
+    def __init__(self, concepts: List[LearningConcept]):
         if not concepts:
-            raise ValueError("TutorContentLibrary requires at least one concept.")
-        self._concepts: Dict[str, TutorConcept] = {c.id: c for c in concepts}
-        self._order: List[str] = [c.id for c in concepts]
+            raise ValueError("ContentRepository needs at least one concept to function.")
+        self._concept_map: Dict[str, LearningConcept] = {c.id: c for c in concepts}
+        self._concept_sequence: List[str] = [c.id for c in concepts]
 
     @classmethod
-    def from_path(cls, content_path: Path) -> "TutorContentLibrary":
-        if not content_path.exists():
-            raise FileNotFoundError(f"Tutor content file not found: {content_path}")
-        with open(content_path, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        concepts = [TutorConcept(**item) for item in raw]
-        return cls(concepts)
+    def load_from_file(cls, file_path: Path) -> "ContentRepository":
+        if not file_path.exists():
+            raise FileNotFoundError(f"Content file missing at: {file_path}")
+        with open(file_path, "r", encoding="utf-8") as file:
+            data = json.load(file)
+        concept_list = [LearningConcept(**item) for item in data]
+        return cls(concept_list)
 
     @classmethod
-    def from_env(cls) -> "TutorContentLibrary":
-        default_path = Path(__file__).resolve().parents[2] / "shared-data" / "materials.json"
-        configured = os.getenv("DAY4_TUTOR_CONTENT_PATH")
-        path = Path(configured) if configured else default_path
-        return cls.from_path(path)
+    def initialize_from_environment(cls) -> "ContentRepository":
+        base_dir = Path(__file__).resolve().parents[2]
+        default_location = base_dir / "shared-data" / "materials.json"
+        env_path = os.getenv("DAY4_TUTOR_CONTENT_PATH")
+        actual_path = Path(env_path) if env_path else default_location
+        return cls.load_from_file(actual_path)
 
-    def list_concepts(self) -> List[TutorConcept]:
-        return [self._concepts[cid] for cid in self._order]
+    def get_all_concepts(self) -> List[LearningConcept]:
+        return [self._concept_map[cid] for cid in self._concept_sequence]
 
-    def get(self, concept_id: Optional[str]) -> TutorConcept:
-        target_id = concept_id or self._order[0]
-        if target_id not in self._concepts:
-            raise KeyError(f"Unknown concept id: {target_id}")
-        return self._concepts[target_id]
+    def retrieve_concept(self, concept_id: Optional[str]) -> LearningConcept:
+        selected_id = concept_id or self._concept_sequence[0]
+        if selected_id not in self._concept_map:
+            raise KeyError(f"Concept not found: {selected_id}")
+        return self._concept_map[selected_id]
 
-    def next_concept_id(self, current_id: Optional[str]) -> str:
+    def get_next_in_sequence(self, current_id: Optional[str]) -> str:
         if current_id is None:
-            return self._order[0]
+            return self._concept_sequence[0]
         try:
-            idx = self._order.index(current_id)
+            position = self._concept_sequence.index(current_id)
         except ValueError:
-            return self._order[0]
-        return self._order[(idx + 1) % len(self._order)]
+            return self._concept_sequence[0]
+        next_position = (position + 1) % len(self._concept_sequence)
+        return self._concept_sequence[next_position]
 
 
 @dataclass
-class Userdata:
-    """Holds both the session state and the content library."""
-    state: TutorSessionState
-    content: TutorContentLibrary
+class AgentUserdata:
+    """Container for session and content data."""
+    state: SessionContext
+    content: ContentRepository
 
 
-class TeachTheTutorAgent(Agent):
-    """Active recall coach with mode-specific personas."""
+class ActiveRecallCoach(Agent):
+    """AI tutor implementing active recall methodology."""
 
-    def __init__(self, *, userdata: Userdata) -> None:
-        instructions = f"""You are Teach-the-Tutor, an active recall coach that helps users master core coding concepts.
+    def __init__(self, *, userdata: AgentUserdata) -> None:
+        system_prompt = f"""You are Teach-the-Tutor, an active recall coach that helps users master core coding concepts.
 Key behaviors:
 - Greet the learner and immediately ask which learning mode they prefer (learn, quiz, teach_back).
 - When the learner requests a mode change, call set_learning_mode to switch voices (Matthew for learn, Alicia for quiz, Ken for teach_back).
@@ -153,252 +154,252 @@ Mode-specific guidance:
 
 Use function tools frequently to stay grounded in the JSON content."""
 
-        super().__init__(instructions=instructions)
+        super().__init__(instructions=system_prompt)
 
-    async def on_agent_speech_committed(self, ctx: RunContext[Userdata], message: str) -> None:
-        logger.info(f"🤖 Agent said: {message}")
+    async def on_agent_speech_committed(self, ctx: RunContext[AgentUserdata], message: str) -> None:
+        agent_logger.info(f"🤖 Agent said: {message}")
 
-    async def on_user_speech_committed(self, ctx: RunContext[Userdata], message: str) -> None:
-        logger.info(f"👤 User said: {message}")
+    async def on_user_speech_committed(self, ctx: RunContext[AgentUserdata], message: str) -> None:
+        agent_logger.info(f"👤 User said: {message}")
 
-    def _require_concept(self, ctx: RunContext[Userdata]) -> TutorConcept:
-        state = ctx.userdata.state
+    def _fetch_active_concept(self, ctx: RunContext[AgentUserdata]) -> LearningConcept:
+        session_state = ctx.userdata.state
         try:
-            return ctx.userdata.content.get(state.current_concept_id)
-        except KeyError as exc:
-            raise ToolError(str(exc)) from exc
+            return ctx.userdata.content.retrieve_concept(session_state.current_concept_id)
+        except KeyError as error:
+            raise ToolError(str(error)) from error
 
-    def _apply_voice_persona(self, ctx: RunContext[Userdata], mode: str) -> None:
-        """Apply voice change - with fallback to TTS replacement if update_options fails"""
-        persona = VOICE_PERSONAS[mode]
-        tts_engine = ctx.session.tts
+    def _switch_voice_profile(self, ctx: RunContext[AgentUserdata], mode: str) -> None:
+        """Changes voice with fallback mechanism if primary method fails"""
+        voice_config = MODE_VOICE_CONFIG[mode]
+        tts_instance = ctx.session.tts
         
-        if not tts_engine:
-            logger.warning("Cannot switch voices: session has no TTS engine configured.")
+        if not tts_instance:
+            agent_logger.warning("Voice switching unavailable: no TTS engine in session.")
             return
 
-        # Try update_options first (faster, no interruption)
-        update_cb = getattr(tts_engine, "update_options", None)
-        if callable(update_cb):
+        # Attempt direct option update first
+        update_method = getattr(tts_instance, "update_options", None)
+        if callable(update_method):
             try:
-                update_cb(voice=persona["voice"], style=persona["style"])
-                logger.info(f"✅ Voice updated to {persona['display']} for {mode} mode (update_options)")
+                update_method(voice=voice_config["voice"], style=voice_config["style"])
+                agent_logger.info(f"✅ Voice profile changed to {voice_config['display']} for {mode} (via update_options)")
                 return
-            except Exception as exc:
-                logger.warning(f"update_options failed: {exc}, falling back to TTS replacement")
+            except Exception as error:
+                agent_logger.warning(f"Direct update failed: {error}, switching to fallback method")
 
-        # Fallback: Create new TTS and replace (more reliable but may cause brief pause)
+        # Fallback: Replace entire TTS engine
         try:
-            new_tts = murf.TTS(
-                voice=persona["voice"],
-                style=persona["style"],
-                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),  # ✅ Fixed
+            sentence_tokenizer = tokenize.basic.SentenceTokenizer(min_sentence_len=2)
+            replacement_tts = murf.TTS(
+                voice=voice_config["voice"],
+                style=voice_config["style"],
+                tokenizer=sentence_tokenizer,
                 text_pacing=True,
             )
-            ctx.session.tts = new_tts
-            logger.info(f"✅ Voice switched to {persona['display']} for {mode} mode (TTS replacement)")
-        except Exception as exc:
-            logger.error(f"Failed to switch TTS voice for mode {mode}: {exc}")
+            ctx.session.tts = replacement_tts
+            agent_logger.info(f"✅ Voice profile changed to {voice_config['display']} for {mode} (via TTS replacement)")
+        except Exception as error:
+            agent_logger.error(f"Voice switching completely failed for mode {mode}: {error}")
 
     @function_tool
-    async def list_concepts(self, ctx: RunContext[Userdata]) -> str:
-        """List available concepts with their IDs and titles so the learner can choose."""
-        concepts = ctx.userdata.content.list_concepts()
-        formatted = ", ".join(f"{c.id} ({c.title})" for c in concepts)
-        return f"Available concepts: {formatted}. Ask the learner which one they want to focus on."
+    async def list_concepts(self, ctx: RunContext[AgentUserdata]) -> str:
+        """Lists all available learning concepts for selection."""
+        all_concepts = ctx.userdata.content.get_all_concepts()
+        concept_list = ", ".join(f"{c.id} ({c.title})" for c in all_concepts)
+        return f"Available concepts: {concept_list}. Ask the learner which one they want to focus on."
 
     @function_tool
-    async def set_focus_concept(self, ctx: RunContext[Userdata], concept_id: str) -> str:
-        """Set the active concept that the session should focus on."""
-        concept = ctx.userdata.content.get(concept_id)
-        ctx.userdata.state.current_concept_id = concept.id
-        ctx.userdata.state.ensure_mastery(concept.id)
-        return f"Concept locked: {concept.title}. You're clear to continue working on {concept.title}."
+    async def set_focus_concept(self, ctx: RunContext[AgentUserdata], concept_id: str) -> str:
+        """Sets the primary concept for the current session."""
+        selected_concept = ctx.userdata.content.retrieve_concept(concept_id)
+        ctx.userdata.state.current_concept_id = selected_concept.id
+        ctx.userdata.state.get_or_create_tracker(selected_concept.id)
+        return f"Concept locked: {selected_concept.title}. You're clear to continue working on {selected_concept.title}."
 
     @function_tool
-    async def describe_current_concept(self, ctx: RunContext[Userdata]) -> str:
-        """Return the summary of the current concept for learn mode explanations."""
-        concept = self._require_concept(ctx)
-        mastery = ctx.userdata.state.ensure_mastery(concept.id)
-        mastery.times_learned += 1
-        return f"{concept.title}: {concept.summary}"
+    async def describe_current_concept(self, ctx: RunContext[AgentUserdata]) -> str:
+        """Provides summary of the active concept for learning."""
+        active_concept = self._fetch_active_concept(ctx)
+        tracker = ctx.userdata.state.get_or_create_tracker(active_concept.id)
+        tracker.times_learned += 1
+        return f"{active_concept.title}: {active_concept.summary}"
 
     @function_tool
-    async def get_quiz_prompt(self, ctx: RunContext[Userdata]) -> str:
-        """Return a quiz question for the current concept."""
-        concept = self._require_concept(ctx)
-        mastery = ctx.userdata.state.ensure_mastery(concept.id)
-        mastery.times_quizzed += 1
-        return f"Quiz question for {concept.title}: {concept.sample_question}"
+    async def get_quiz_prompt(self, ctx: RunContext[AgentUserdata]) -> str:
+        """Retrieves quiz question for the current concept."""
+        active_concept = self._fetch_active_concept(ctx)
+        tracker = ctx.userdata.state.get_or_create_tracker(active_concept.id)
+        tracker.times_quizzed += 1
+        return f"Quiz question for {active_concept.title}: {active_concept.sample_question}"
 
     @function_tool
-    async def get_teach_back_prompt(self, ctx: RunContext[Userdata]) -> str:
-        """Return the teach-back instructions for the current concept."""
-        concept = self._require_concept(ctx)
-        mastery = ctx.userdata.state.ensure_mastery(concept.id)
-        mastery.times_taught_back += 1
-        return f"Teach this back: {concept.teach_back_prompt}"
+    async def get_teach_back_prompt(self, ctx: RunContext[AgentUserdata]) -> str:
+        """Gets teach-back instructions for active concept."""
+        active_concept = self._fetch_active_concept(ctx)
+        tracker = ctx.userdata.state.get_or_create_tracker(active_concept.id)
+        tracker.times_taught_back += 1
+        return f"Teach this back: {active_concept.teach_back_prompt}"
 
     @function_tool
-    async def set_learning_mode(self, ctx: RunContext[Userdata], mode: str) -> str:
-        """Switch to one of the supported modes: learn, quiz, teach_back."""
-        normalized = mode.lower()
-        if normalized not in LEARNING_MODES:
+    async def set_learning_mode(self, ctx: RunContext[AgentUserdata], mode: str) -> str:
+        """Changes the learning mode (learn, quiz, teach_back)."""
+        mode_normalized = mode.lower()
+        if mode_normalized not in AVAILABLE_MODES:
             raise ToolError(
-                f"Unsupported mode '{mode}'. Choose from: {', '.join(LEARNING_MODES)}."
+                f"Invalid mode '{mode}'. Valid options: {', '.join(AVAILABLE_MODES)}."
             )
-        ctx.userdata.state.current_mode = normalized
-        persona = VOICE_PERSONAS[normalized]
-        self._apply_voice_persona(ctx, normalized)
+        ctx.userdata.state.current_mode = mode_normalized
+        voice_profile = MODE_VOICE_CONFIG[mode_normalized]
+        self._switch_voice_profile(ctx, mode_normalized)
         return (
-            f"Switched to {normalized} mode. Voice {persona['display']} is now active "
-            f"({persona['tone']})."
+            f"Switched to {mode_normalized} mode. Voice {voice_profile['display']} is now active "
+            f"({voice_profile['tone']})."
         )
 
     @function_tool
     async def record_mastery_event(
         self,
-        ctx: RunContext[Userdata],
+        ctx: RunContext[AgentUserdata],
         mode: str,
         concept_id: Optional[str] = None,
         score: Optional[int] = None,
         feedback: Optional[str] = None,
     ) -> str:
-        """Update mastery stats after finishing an interaction."""
-        normalized = mode.lower()
-        if normalized not in LEARNING_MODES:
-            raise ToolError(f"Mode must be one of {', '.join(LEARNING_MODES)}.")
-        target_concept = concept_id or ctx.userdata.state.current_concept_id
-        if target_concept is None:
+        """Records progress after completing a learning activity."""
+        mode_normalized = mode.lower()
+        if mode_normalized not in AVAILABLE_MODES:
+            raise ToolError(f"Mode must be one of {', '.join(AVAILABLE_MODES)}.")
+        target_id = concept_id or ctx.userdata.state.current_concept_id
+        if target_id is None:
             raise ToolError("Cannot record mastery without an active concept.")
-        mastery = ctx.userdata.state.ensure_mastery(target_concept)
+        tracker = ctx.userdata.state.get_or_create_tracker(target_id)
         if score is not None:
-            mastery.last_score = max(0, min(100, score))
+            tracker.last_score = max(0, min(100, score))
         if feedback:
-            mastery.last_feedback = feedback
+            tracker.last_feedback = feedback
+        score_display = tracker.last_score if tracker.last_score is not None else 'n/a'
         return (
-            f"Mastery updated for {target_concept} after {normalized} mode. "
-            f"Latest score: {mastery.last_score if mastery.last_score is not None else 'n/a'}."
+            f"Mastery updated for {target_id} after {mode_normalized} mode. "
+            f"Latest score: {score_display}."
         )
 
     @function_tool
     async def get_mastery_snapshot(
         self,
-        ctx: RunContext[Userdata],
+        ctx: RunContext[AgentUserdata],
         concept_id: Optional[str] = None,
     ) -> str:
-        """Summarize mastery stats for one concept or all of them."""
+        """Generates summary of progress statistics."""
         if concept_id:
-            concepts = [ctx.userdata.content.get(concept_id)]
+            concepts_to_check = [ctx.userdata.content.retrieve_concept(concept_id)]
         else:
-            concepts = ctx.userdata.content.list_concepts()
-        summaries = []
-        for concept in concepts:
-            mastery = ctx.userdata.state.mastery.get(concept.id, ConceptMastery())
-            summary = (
-                f"{concept.title}: learn={mastery.times_learned}, "
-                f"quiz={mastery.times_quizzed}, teach_back={mastery.times_taught_back}, "
-                f"last_score={mastery.last_score if mastery.last_score is not None else 'n/a'}"
+            concepts_to_check = ctx.userdata.content.get_all_concepts()
+        progress_summaries = []
+        for concept in concepts_to_check:
+            tracker = ctx.userdata.state.mastery.get(concept.id, ProgressTracker())
+            score_display = tracker.last_score if tracker.last_score is not None else 'n/a'
+            summary_text = (
+                f"{concept.title}: learn={tracker.times_learned}, "
+                f"quiz={tracker.times_quizzed}, teach_back={tracker.times_taught_back}, "
+                f"last_score={score_display}"
             )
-            if mastery.last_feedback:
-                summary += f", feedback='{mastery.last_feedback}'"
-            summaries.append(summary)
-        return " | ".join(summaries)
+            if tracker.last_feedback:
+                summary_text += f", feedback='{tracker.last_feedback}'"
+            progress_summaries.append(summary_text)
+        return " | ".join(progress_summaries)
 
     @function_tool
-    async def advance_to_next_concept(self, ctx: RunContext[Userdata]) -> str:
-        """Cycle to the next concept in the content list."""
-        next_id = ctx.userdata.content.next_concept_id(ctx.userdata.state.current_concept_id)
-        ctx.userdata.state.current_concept_id = next_id
-        ctx.userdata.state.ensure_mastery(next_id)
-        concept = ctx.userdata.content.get(next_id)
-        return f"Advanced to {concept.title}. Let the learner know the new focus."
+    async def advance_to_next_concept(self, ctx: RunContext[AgentUserdata]) -> str:
+        """Moves to the next concept in the curriculum."""
+        next_concept_id = ctx.userdata.content.get_next_in_sequence(ctx.userdata.state.current_concept_id)
+        ctx.userdata.state.current_concept_id = next_concept_id
+        ctx.userdata.state.get_or_create_tracker(next_concept_id)
+        next_concept = ctx.userdata.content.retrieve_concept(next_concept_id)
+        return f"Advanced to {next_concept.title}. Let the learner know the new focus."
 
 
 def prewarm(proc: JobProcess):
-    """Prewarm models and load tutor content."""
+    """Preloads models and educational content."""
     proc.userdata["vad"] = silero.VAD.load()
-    proc.userdata["tutor_content"] = TutorContentLibrary.from_env()
+    proc.userdata["tutor_content"] = ContentRepository.initialize_from_environment()
 
 
 async def entrypoint(ctx: JobContext):
-    """Entry point for Day 4 active recall coach with smooth voice switching."""
+    """Main entry point for the active recall coaching agent."""
 
     ctx.log_context_fields = {"room": ctx.room.name}
 
-    content = ctx.proc.userdata.get("tutor_content", TutorContentLibrary.from_env())
-    state = TutorSessionState(current_concept_id=content.list_concepts()[0].id)
-    userdata = Userdata(state=state, content=content)
+    repository = ctx.proc.userdata.get("tutor_content", ContentRepository.initialize_from_environment())
+    initial_concept = repository.get_all_concepts()[0].id
+    session_state = SessionContext(current_concept_id=initial_concept)
+    agent_data = AgentUserdata(state=session_state, content=repository)
 
-    session = AgentSession[Userdata](
-        userdata=userdata,
+    agent_session = AgentSession[AgentUserdata](
+        userdata=agent_data,
         stt=deepgram.STT(model="nova-3"),
         llm=google.LLM(model="gemini-2.5-flash"),
         tts=murf.TTS(
-            voice=VOICE_PERSONAS["learn"]["voice"],
-            style=VOICE_PERSONAS["learn"]["style"],
-            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),  # ✅ Fixed
-            text_pacing=True,  # Can enable with SentenceTokenizer
+            voice=MODE_VOICE_CONFIG["learn"]["voice"],
+            style=MODE_VOICE_CONFIG["learn"]["style"],
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+            text_pacing=True,
         ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
         preemptive_generation=True,
     )
 
-    usage_collector = metrics.UsageCollector()
+    metrics_collector = metrics.UsageCollector()
 
-    @session.on("metrics_collected")
-    def _on_metrics_collected(ev: MetricsCollectedEvent):
+    @agent_session.on("metrics_collected")
+    def handle_metrics_collection(ev: MetricsCollectedEvent):
         metrics.log_metrics(ev.metrics)
-        usage_collector.collect(ev.metrics)
+        metrics_collector.collect(ev.metrics)
 
-    # 🔥 KEY IMPROVEMENT: Direct mode detection for instant voice switching
-    @session.on("user_speech_committed")
-    def _on_user_speech(ev):
-        """Detect mode keywords BEFORE LLM thinks about it"""
-        text = ev.text.lower()
-        logger.info(f"👤 User speech: {text}")
+    @agent_session.on("user_speech_committed")
+    def handle_user_speech(ev):
+        """Detects mode keywords for instant voice switching"""
+        user_text = ev.text.lower()
+        agent_logger.info(f" User speech: {user_text}")
         
-        # Detect mode change keywords and apply voice immediately
-        detected_mode = None
-        if "learn" in text and "mode" in text:
-            detected_mode = "learn"
-        elif "quiz" in text and "mode" in text:
-            detected_mode = "quiz"
-        elif ("teach back" in text or "teachback" in text or "teach-back" in text) and "mode" in text:
-            detected_mode = "teach_back"
+        target_mode = None
+        if "learn" in user_text and "mode" in user_text:
+            target_mode = "learn"
+        elif "quiz" in user_text and "mode" in user_text:
+            target_mode = "quiz"
+        elif ("teach back" in user_text or "teachback" in user_text or "teach-back" in user_text) and "mode" in user_text:
+            target_mode = "teach_back"
         
-        # Apply voice change immediately if mode detected
-        if detected_mode:
-            userdata.state.current_mode = detected_mode
-            agent = session.agent
-            if isinstance(agent, TeachTheTutorAgent):
-                # Create temporary context for voice switching
-                temp_ctx = type('obj', (object,), {
-                    'userdata': userdata,
-                    'session': session
+        if target_mode:
+            agent_data.state.current_mode = target_mode
+            active_agent = agent_session.agent
+            if isinstance(active_agent, ActiveRecallCoach):
+                temp_context = type('obj', (object,), {
+                    'userdata': agent_data,
+                    'session': agent_session
                 })()
-                agent._apply_voice_persona(temp_ctx, detected_mode)
-                logger.info(f"🚀 Instant mode switch to {detected_mode} detected from user speech")
+                active_agent._switch_voice_profile(temp_context, target_mode)
+                agent_logger.info(f"Instant mode switch to {target_mode} from user input")
 
-    @session.on("agent_speech_committed")
-    def _on_agent_speech(ev):
-        logger.info(f"🤖 Agent speech: {ev.text}")
+    @agent_session.on("agent_speech_committed")
+    def handle_agent_speech(ev):
+        agent_logger.info(f"Agent speech: {ev.text}")
 
-    @session.on("error")
-    def _on_error(ev):
-        logger.error(f"❌ Session error: {ev}")
+    @agent_session.on("error")
+    def handle_session_error(ev):
+        agent_logger.error(f"Session error: {ev}")
 
-    async def log_usage():
-        summary = usage_collector.get_summary()
-        logger.info(f"📊 Usage: {summary}")
+    async def report_usage():
+        usage_summary = metrics_collector.get_summary()
+        agent_logger.info(f"Usage: {usage_summary}")
 
-    ctx.add_shutdown_callback(log_usage)
+    ctx.add_shutdown_callback(report_usage)
 
-    agent = TeachTheTutorAgent(userdata=userdata)
+    coach_agent = ActiveRecallCoach(userdata=agent_data)
 
-    await session.start(
-        agent=agent,
+    await agent_session.start(
+        agent=coach_agent,
         room=ctx.room,
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC(),
@@ -406,7 +407,7 @@ async def entrypoint(ctx: JobContext):
     )
 
     await ctx.connect()
-    logger.info("✨ Day 4 Teach-the-Tutor agent with smooth voice switching is live!")
+    agent_logger.info("✨ Day 4 Teach-the-Tutor agent with smooth voice switching is live!")
 
 
 if __name__ == "__main__":
