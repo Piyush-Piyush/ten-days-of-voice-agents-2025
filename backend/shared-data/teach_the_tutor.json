@@ -1,0 +1,62 @@
+[
+	{
+		"id": "variables",
+		"title": "Variables",
+		"summary": "Variables store values so you can reuse and manipulate them later in your program.",
+		"sample_question": "What is a variable and why is it useful?"
+	},
+	{
+		"id": "loops",
+		"title": "Loops",
+		"summary": "Loops let you repeat an action multiple times until a condition is met, saving time and effort.",
+		"sample_question": "Explain the difference between a for loop and a while loop."
+	},
+	{
+		"id": "functions",
+		"title": "Functions",
+		"summary": "Functions are reusable blocks of code that perform a specific task and help keep programs organized.",
+		"sample_question": "What is a function and why do we use it?"
+	},
+	{
+		"id": "conditions",
+		"title": "Conditional Statements",
+		"summary": "Conditional statements allow the program to make decisions by checking whether something is true or false.",
+		"sample_question": "What is an if-else statement and when would you use it?"
+	},
+	{
+		"id": "arrays",
+		"title": "Arrays",
+		"summary": "Arrays store multiple values in a single variable, allowing efficient access and organization of data.",
+		"sample_question": "What is an array and how is it different from a normal variable?"
+	},
+	{
+		"id": "objects",
+		"title": "Objects",
+		"summary": "Objects represent real-world things using key–value pairs, helping you model complex data.",
+		"sample_question": "What is an object and where is it commonly used?"
+	},
+	{
+		"id": "classes",
+		"title": "Classes",
+		"summary": "Classes are templates for creating objects, supporting object-oriented programming and code reuse.",
+		"sample_question": "What is a class and how does it relate to objects?"
+	},
+	{
+		"id": "recursion",
+		"title": "Recursion",
+		"summary": "Recursion is when a function calls itself to solve smaller parts of a larger problem.",
+		"sample_question": "What is recursion and when is it useful?"
+	},
+	{
+		"id": "asynchronous",
+		"title": "Asynchronous Programming",
+		"summary": "Asynchronous programming allows tasks to run without blocking the rest of the program, improving performance.",
+		"sample_question": "Explain what asynchronous programming means and give an example."
+	},
+	{
+		"id": "data_structures",
+		"title": "Data Structures",
+		"summary": "Data structures organize and store data efficiently so operations like search or update become faster.",
+		"sample_question": "What is a data structure and why do we need different types of them?"
+	}
+]
