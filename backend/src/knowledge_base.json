@@ -1,0 +1,10 @@
+{
+  "company_name": "AcmeAI",
+  "product_name": "AcmeAI Voice SDR",
+
+  "faq": {
+    "what_does_your_product_do": "{product_name} helps automate sales outreach using AI voice agents.",
+    "who_is_this_for": "{product_name} is designed for sales teams, founders, and startups who want to scale outbound conversations.",
+    "do_you_have_a_free_tier": "We currently do not offer a free tier, but we do provide demo credits upon request."
+  }
+}

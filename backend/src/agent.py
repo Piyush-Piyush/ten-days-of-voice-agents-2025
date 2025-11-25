@@ -1,6 +1,12 @@
 import logging
-
+import json
 from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
+
 from livekit.agents import (
     Agent,
     AgentSession,
@@ -12,128 +18,210 @@ from livekit.agents import (
     cli,
     metrics,
     tokenize,
-    # function_tool,
-    # RunContext
+    function_tool,
+    RunContext
 )
-from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
-
 load_dotenv(".env.local")
 
+# ----------------------------------------------------
+# Load Knowledge Base
+# ----------------------------------------------------
+def load_knowledge_base():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    kb_path = os.path.join(current_dir, "knowledge_base.json")
 
+    print("Looking for knowledge base at:", kb_path)
+
+    if not os.path.isfile(kb_path):
+        raise FileNotFoundError(f"Knowledge base JSON not found at: {kb_path}")
+
+    with open(kb_path, "r", encoding="utf-8") as f:
+        kb = json.load(f)
+
+    # Inject company/product into FAQ answers
+    if "faq" in kb:
+        for key in kb["faq"]:
+            kb["faq"][key] = kb["faq"][key].replace("{company_name}", kb["company_name"])
+            kb["faq"][key] = kb["faq"][key].replace("{product_name}", kb["product_name"])
+
+    return kb
+
+
+KNOWLEDGE_BASE = load_knowledge_base()
+
+# ----------------------------------------------------
+# Lead Fields (Modified)
+# ----------------------------------------------------
+POTENTIAL_CUSTOMER_LEAD_FIELDS = [
+    "customer_name",
+    "customer_email",
+    "product_use_case"
+]
+
+LEAD_TEMPLATE = {field: None for field in POTENTIAL_CUSTOMER_LEAD_FIELDS}
+
+
+# ----------------------------------------------------
+# SDR Assistant
+# ----------------------------------------------------
 class Assistant(Agent):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(
-            instructions="""You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions=f"""
+You are an SDR representing {KNOWLEDGE_BASE['company_name']} and the product {KNOWLEDGE_BASE['product_name']}.
+
+You MUST answer ONLY using the knowledge base:
+{json.dumps(KNOWLEDGE_BASE)}
+
+RULES:
+1. Never invent information not in the knowledge base.
+2. Unknown questions → say: "I don't have that information in my knowledge base."
+3. You must collect:
+   - customer_name
+   - customer_email
+   - product_use_case
+4. Automatically set "interested_company" as {KNOWLEDGE_BASE['company_name']}.
+5. Ask one question at a time.
+6. When all fields collected → call record_customer_info.
+"""
         )
 
-    # To add tools, use the @function_tool decorator.
-    # Here's an example that adds a simple weather tool.
-    # You also have to add `from livekit.agents import function_tool, RunContext` to the top of this file
-    # @function_tool
-    # async def lookup_weather(self, context: RunContext, location: str):
-    #     """Use this tool to look up current weather information in the given location.
-    #
-    #     If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
-    #
-    #     Args:
-    #         location: The location to look up weather information for (e.g. city name)
-    #     """
-    #
-    #     logger.info(f"Looking up weather for {location}")
-    #
-    #     return "sunny with a temperature of 70 degrees."
+        self.lead = LEAD_TEMPLATE.copy()
+        self.lead["interested_company"] = KNOWLEDGE_BASE["company_name"]
+
+    # ------------------------------------------------
+    # Tool: Save Lead
+    # ------------------------------------------------
+    @function_tool
+    async def record_customer_info(
+        self,
+        ctx: RunContext,
+        customer_name: str = None,
+        customer_email: str = None,
+        product_use_case: str = None,
+        interested_company: str = None
+    ):
+        lead = {
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "product_use_case": product_use_case,
+            "interested_company": interested_company,
+        }
+
+        Path("LEADS").mkdir(exist_ok=True)
+
+        with open("LEADS/lead.json", "w") as f:
+            json.dump(lead, f, indent=2)
+
+        return "Lead information saved."
+
+    # ------------------------------------------------
+    # Message Handler
+    # ------------------------------------------------
+    async def on_message(self, ctx: RunContext, message: str):
+        msg = message.lower().strip()
+
+        # FAQ responses
+        faq_map = {
+            "what does your product do": "what_does_your_product_do",
+            "who is this for": "who_is_this_for",
+            "free tier": "do_you_have_a_free_tier",
+            "free plan": "do_you_have_a_free_tier",
+        }
+
+        for key, faq_id in faq_map.items():
+            if key in msg:
+                await ctx.send(KNOWLEDGE_BASE["faq"][faq_id])
+                break
+
+        # Lead collection
+        for field in POTENTIAL_CUSTOMER_LEAD_FIELDS:
+            if self.lead[field] is None:
+                self.lead[field] = message  # store user response
+
+                prompts = {
+                    "customer_name": "May I know your name?",
+                    "customer_email": "What's the best email to reach you at?",
+                    "product_use_case": "What would you like to use our product for?",
+                }
+
+                next_index = POTENTIAL_CUSTOMER_LEAD_FIELDS.index(field) + 1
+
+                if next_index < len(POTENTIAL_CUSTOMER_LEAD_FIELDS):
+                    next_field = POTENTIAL_CUSTOMER_LEAD_FIELDS[next_index]
+                    await ctx.send(prompts[next_field])
+                    return
+
+                # All fields collected
+                await ctx.send("Great! Saving your details now.")
+
+                await self.record_customer_info(
+                    ctx,
+                    customer_name=self.lead["customer_name"],
+                    customer_email=self.lead["customer_email"],
+                    product_use_case=self.lead["product_use_case"],
+                    interested_company=self.lead["interested_company"]
+                )
+
+                await ctx.send("Your info has been saved! How else can I help?")
+                return
+
+        await ctx.send("I don't have that information in my knowledge base.")
 
 
+# ----------------------------------------------------
+# Worker / Entry Point
+# ----------------------------------------------------
 def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
 
 
 async def entrypoint(ctx: JobContext):
-    # Logging setup
-    # Add any other context you want in all log entries here
-    ctx.log_context_fields = {
-        "room": ctx.room.name,
-    }
+    ctx.log_context_fields = {"room": ctx.room.name}
 
-    # Set up a voice AI pipeline using OpenAI, Cartesia, AssemblyAI, and the LiveKit turn detector
     session = AgentSession(
-        # Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
-        # See all available models at https://docs.livekit.io/agents/models/stt/
         stt=deepgram.STT(model="nova-3"),
-        # A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
-        # See all available models at https://docs.livekit.io/agents/models/llm/
-        llm=google.LLM(
-                model="gemini-2.5-flash",
-            ),
-        # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
-        # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
+        llm=google.LLM(model="gemini-2.5-flash"),
         tts=murf.TTS(
-                voice="en-US-matthew", 
-                style="Conversation",
-                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
-                text_pacing=True
-            ),
-        # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
-        # See more at https://docs.livekit.io/agents/build/turns
+            voice="en-US-matthew",
+            style="Conversation",
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+            text_pacing=True
+        ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
-        # allow the LLM to generate a response while waiting for the end of turn
-        # See more at https://docs.livekit.io/agents/build/audio/#preemptive-generation
         preemptive_generation=True,
     )
 
-    # To use a realtime model instead of a voice pipeline, use the following session setup instead.
-    # (Note: This is for the OpenAI Realtime API. For other providers, see https://docs.livekit.io/agents/models/realtime/))
-    # 1. Install livekit-agents[openai]
-    # 2. Set OPENAI_API_KEY in .env.local
-    # 3. Add `from livekit.plugins import openai` to the top of this file
-    # 4. Use the following session setup instead of the version above
-    # session = AgentSession(
-    #     llm=openai.realtime.RealtimeModel(voice="marin")
-    # )
-
-    # Metrics collection, to measure pipeline performance
-    # For more information, see https://docs.livekit.io/agents/build/metrics/
     usage_collector = metrics.UsageCollector()
 
     @session.on("metrics_collected")
-    def _on_metrics_collected(ev: MetricsCollectedEvent):
+    def _on_metrics(ev: MetricsCollectedEvent):
         metrics.log_metrics(ev.metrics)
         usage_collector.collect(ev.metrics)
 
     async def log_usage():
-        summary = usage_collector.get_summary()
-        logger.info(f"Usage: {summary}")
+        logger.info("Usage summary: %s", usage_collector.get_summary())
 
     ctx.add_shutdown_callback(log_usage)
 
-    # # Add a virtual avatar to the session, if desired
-    # # For other providers, see https://docs.livekit.io/agents/models/avatar/
-    # avatar = hedra.AvatarSession(
-    #   avatar_id="...",  # See https://docs.livekit.io/agents/models/avatar/plugins/hedra
-    # )
-    # # Start the avatar and wait for it to join
-    # await avatar.start(session, room=ctx.room)
-
-    # Start the session, which initializes the voice pipeline and warms up the models
     await session.start(
         agent=Assistant(),
         room=ctx.room,
         room_input_options=RoomInputOptions(
-            # For telephony applications, use `BVCTelephony` for best results
             noise_cancellation=noise_cancellation.BVC(),
         ),
     )
 
-    # Join the room and connect to the user
     await ctx.connect()
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
+    cli.run_app(
+        WorkerOptions(
+            entrypoint_fnc=entrypoint,
+            prewarm_fnc=prewarm
+        )
+    )
