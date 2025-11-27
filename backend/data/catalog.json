@@ -1,0 +1,242 @@
+{
+  "items": [
+    {
+      "id": "bread_01",
+      "name": "Whole Wheat Bread",
+      "category": "Groceries",
+      "price": 3.99,
+      "unit": "loaf",
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "bread_02",
+      "name": "White Bread",
+      "category": "Groceries",
+      "price": 2.99,
+      "unit": "loaf",
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "milk_01",
+      "name": "Whole Milk",
+      "category": "Groceries",
+      "price": 4.49,
+      "unit": "gallon",
+      "tags": []
+    },
+    {
+      "id": "eggs_01",
+      "name": "Large Eggs",
+      "category": "Groceries",
+      "price": 5.99,
+      "unit": "dozen",
+      "tags": []
+    },
+    {
+      "id": "butter_01",
+      "name": "Salted Butter",
+      "category": "Groceries",
+      "price": 4.99,
+      "unit": "lb",
+      "tags": []
+    },
+    {
+      "id": "peanut_butter_01",
+      "name": "Creamy Peanut Butter",
+      "category": "Groceries",
+      "price": 6.49,
+      "unit": "jar",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "pasta_01",
+      "name": "Spaghetti Pasta",
+      "category": "Groceries",
+      "price": 2.49,
+      "unit": "lb",
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "pasta_sauce_01",
+      "name": "Marinara Sauce",
+      "category": "Groceries",
+      "price": 3.99,
+      "unit": "jar",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "cheese_01",
+      "name": "Parmesan Cheese",
+      "category": "Groceries",
+      "price": 7.99,
+      "unit": "8oz",
+      "tags": [
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "apple_01",
+      "name": "Gala Apples",
+      "category": "Groceries",
+      "price": 4.99,
+      "unit": "lb",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "chips_01",
+      "name": "Potato Chips",
+      "category": "Snacks",
+      "price": 3.49,
+      "unit": "bag",
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "cookies_01",
+      "name": "Chocolate Chip Cookies",
+      "category": "Snacks",
+      "price": 4.99,
+      "unit": "pack",
+      "tags": []
+    },
+    {
+      "id": "nuts_01",
+      "name": "Mixed Nuts",
+      "category": "Snacks",
+      "price": 8.99,
+      "unit": "pack",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "pizza_01",
+      "name": "Margherita Pizza",
+      "category": "Prepared Food",
+      "price": 12.99,
+      "unit": "large",
+      "tags": []
+    },
+    {
+      "id": "pizza_02",
+      "name": "Pepperoni Pizza",
+      "category": "Prepared Food",
+      "price": 14.99,
+      "unit": "large",
+      "tags": []
+    },
+    {
+      "id": "sandwich_01",
+      "name": "Turkey Club Sandwich",
+      "category": "Prepared Food",
+      "price": 8.99,
+      "unit": "each",
+      "tags": []
+    },
+    {
+      "id": "juice_01",
+      "name": "Orange Juice",
+      "category": "Beverages",
+      "price": 5.99,
+      "unit": "half-gallon",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "soda_01",
+      "name": "Cola",
+      "category": "Beverages",
+      "price": 6.99,
+      "unit": "12-pack",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "tomato_01",
+      "name": "Roma Tomatoes",
+      "category": "Groceries",
+      "price": 3.49,
+      "unit": "lb",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "lettuce_01",
+      "name": "Iceberg Lettuce",
+      "category": "Groceries",
+      "price": 2.49,
+      "unit": "head",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "onion_01",
+      "name": "Yellow Onions",
+      "category": "Groceries",
+      "price": 1.99,
+      "unit": "lb",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "garlic_01",
+      "name": "Fresh Garlic",
+      "category": "Groceries",
+      "price": 0.99,
+      "unit": "bulb",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "olive_oil_01",
+      "name": "Extra Virgin Olive Oil",
+      "category": "Groceries",
+      "price": 12.99,
+      "unit": "bottle",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "id": "rice_01",
+      "name": "Basmati Rice",
+      "category": "Groceries",
+      "price": 8.99,
+      "unit": "5lb bag",
+      "tags": [
+        "vegan",
+        "gluten-free"
+      ]
+    }
+  ]
+}

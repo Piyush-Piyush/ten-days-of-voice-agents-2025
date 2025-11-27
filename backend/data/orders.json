@@ -1,0 +1,42 @@
+{
+  "orders": [
+    {
+      "order_id": "ORD20251128014820",
+      "timestamp": "2025-11-28T01:48:20.535496",
+      "customer_name": "Biyush",
+      "delivery_address": "x y z Street",
+      "items": [
+        {
+          "id": "bread_01",
+          "name": "Whole Wheat Bread",
+          "price": 3.99,
+          "unit": "loaf",
+          "quantity": 1
+        },
+        {
+          "id": "pasta_01",
+          "name": "Spaghetti Pasta",
+          "price": 2.49,
+          "unit": "lb",
+          "quantity": 1
+        },
+        {
+          "id": "pasta_sauce_01",
+          "name": "Marinara Sauce",
+          "price": 3.99,
+          "unit": "jar",
+          "quantity": 1
+        },
+        {
+          "id": "cheese_01",
+          "name": "Parmesan Cheese",
+          "price": 7.99,
+          "unit": "8oz",
+          "quantity": 1
+        }
+      ],
+      "total": 18.46,
+      "status": "placed"
+    }
+  ]
+}
