@@ -33,29 +33,53 @@ export const ChatEntry = ({
     <li
       title={title}
       data-lk-message-origin={messageOrigin}
-      className={cn('group flex w-full flex-col gap-0.5', className)}
+      className={cn('group flex w-full flex-col gap-1 mb-6', className)}
+      style={{ position: 'relative', zIndex: 10 }}
       {...props}
     >
       <header
         className={cn(
-          'text-muted-foreground flex items-center gap-2 text-sm',
-          messageOrigin === 'local' ? 'flex-row-reverse' : 'text-left'
+          'flex items-center gap-2 text-sm mb-1',
+          messageOrigin === 'local' ? 'flex-row-reverse text-right' : 'text-left'
         )}
       >
-        {name && <strong>{name}</strong>}
-        <span className="font-mono text-xs opacity-0 transition-opacity ease-linear group-hover:opacity-100">
+        {name && (
+          <strong 
+            className="font-semibold"
+            style={{ 
+              color: messageOrigin === 'local' ? '#60a5fa' : '#4ade80',
+              opacity: 1
+            }}
+          >
+            {name}
+          </strong>
+        )}
+        <span 
+          className="font-mono text-xs opacity-50 group-hover:opacity-100 transition-opacity"
+          style={{ color: '#9ca3af' }}
+        >
           {hasBeenEdited && '*'}
           {time.toLocaleTimeString(locale, { timeStyle: 'short' })}
         </span>
       </header>
-      <span
+      <div
         className={cn(
-          'max-w-4/5 rounded-[20px]',
-          messageOrigin === 'local' ? 'bg-muted ml-auto p-2' : 'mr-auto'
+          'max-w-[85%] rounded-2xl px-4 py-3 shadow-lg',
+          messageOrigin === 'local' ? 'ml-auto' : 'mr-auto'
         )}
+        style={{
+          backgroundColor: messageOrigin === 'local' ? '#2563eb' : '#374151',
+          color: '#ffffff',
+          opacity: 1,
+          display: 'block',
+          position: 'relative',
+          zIndex: 10,
+        }}
       >
-        {message}
-      </span>
+        <span style={{ color: '#ffffff', opacity: 1 }}>
+          {message}
+        </span>
+      </div>
     </li>
   );
 };

@@ -1,0 +1,21 @@
+{
+  "player": {
+    "name": "Adventurer",
+    "health": 100,
+    "inventory": [],
+    "current_location": "The Dark Forest Entrance",
+    "quest_status": "active"
+  },
+  "world": {
+    "locations_visited": [
+      "The Dark Forest Entrance"
+    ],
+    "npcs_met": [],
+    "key_events": [],
+    "discovered_items": []
+  },
+  "story_progress": {
+    "turn_count": 0,
+    "major_decisions": []
+  }
+}
