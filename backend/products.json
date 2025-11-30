@@ -1,0 +1,146 @@
+[
+  {
+    "id": "mug-001",
+    "name": "Stoneware Coffee Mug",
+    "description": "Handcrafted ceramic mug, perfect for your morning coffee",
+    "price": 800,
+    "currency": "INR",
+    "category": "mug",
+    "color": "white",
+    "in_stock": true
+  },
+  {
+    "id": "mug-002",
+    "name": "Blue Ceramic Mug",
+    "description": "Elegant blue ceramic mug with modern design",
+    "price": 650,
+    "currency": "INR",
+    "category": "mug",
+    "color": "blue",
+    "in_stock": true
+  },
+  {
+    "id": "tshirt-001",
+    "name": "Classic Cotton T-Shirt",
+    "description": "Comfortable cotton t-shirt, available in multiple sizes",
+    "price": 899,
+    "currency": "INR",
+    "category": "tshirt",
+    "color": "black",
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "in_stock": true
+  },
+  {
+    "id": "tshirt-002",
+    "name": "Premium White T-Shirt",
+    "description": "High-quality premium cotton t-shirt",
+    "price": 1200,
+    "currency": "INR",
+    "category": "tshirt",
+    "color": "white",
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "in_stock": true
+  },
+  {
+    "id": "hoodie-001",
+    "name": "Black Pullover Hoodie",
+    "description": "Warm and cozy pullover hoodie",
+    "price": 2499,
+    "currency": "INR",
+    "category": "hoodie",
+    "color": "black",
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "in_stock": true
+  },
+  {
+    "id": "hoodie-002",
+    "name": "Grey Zip-Up Hoodie",
+    "description": "Comfortable zip-up hoodie with pockets",
+    "price": 2799,
+    "currency": "INR",
+    "category": "hoodie",
+    "color": "grey",
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "in_stock": true
+  },
+  {
+    "id": "bottle-001",
+    "name": "Stainless Steel Water Bottle",
+    "description": "Insulated water bottle, keeps drinks cold for 24 hours",
+    "price": 1499,
+    "currency": "INR",
+    "category": "bottle",
+    "color": "silver",
+    "in_stock": true
+  },
+  {
+    "id": "notebook-001",
+    "name": "Leather Bound Notebook",
+    "description": "Premium leather notebook with 200 pages",
+    "price": 699,
+    "currency": "INR",
+    "category": "notebook",
+    "color": "brown",
+    "in_stock": true
+  },
+  {
+    "id": "laptop-001",
+    "name": "Lenovo IdeaPad Slim 3",
+    "description": "15.6-inch FHD, Intel i5 12th Gen, 8GB RAM, 512GB SSD. Lightweight everyday laptop.",
+    "price": 48990,
+    "currency": "INR",
+    "category": "laptop",
+    "color": "grey",
+    "in_stock": true
+  },
+  {
+    "id": "laptop-002",
+    "name": "HP Pavilion 14",
+    "description": "14-inch IPS display, Ryzen 5 5500U, 16GB RAM, 512GB SSD. Great for productivity.",
+    "price": 52990,
+    "currency": "INR",
+    "category": "laptop",
+    "color": "silver",
+    "in_stock": true
+  },
+  {
+    "id": "laptop-003",
+    "name": "Apple MacBook Air M1",
+    "description": "13.3-inch Retina display, 8GB RAM, 256GB SSD. Efficient and premium ultrabook.",
+    "price": 84990,
+    "currency": "INR",
+    "category": "laptop",
+    "color": "space grey",
+    "in_stock": true
+  },
+  {
+    "id": "laptop-004",
+    "name": "ASUS TUF Gaming F15",
+    "description": "15.6-inch 144Hz, Intel i7 12th Gen, RTX 3050, 16GB RAM, 512GB SSD. Gaming-focused laptop.",
+    "price": 99990,
+    "currency": "INR",
+    "category": "laptop",
+    "color": "black",
+    "in_stock": true
+  }
+]
