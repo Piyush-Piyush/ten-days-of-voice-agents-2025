@@ -1,0 +1,21 @@
+{
+  "player_name": "Raj",
+  "current_round": 2,
+  "max_rounds": 3,
+  "phase": "done",
+  "rounds_completed": 2,
+  "rounds": [
+    {
+      "round": 1,
+      "scenario": "You are a time-travelling tour guide explaining modern smartphones to someone from the 1800s.",
+      "player_performance": "The player, as a time-traveling tour guide, explained a smartphone to a person from the 1800s by comparing it to familiar concepts like a 'tiny portable newspaper, telegraph, library, hall, and gossip circle.' They emphasized its touch screen, moving pictures, remote messaging, and global information access, highlighting the absence of wires, horses, or smoke signals. The explanation was clear and descriptive, delivered with a suitable tour guide cadence.",
+      "host_reaction": "That was a charming explanation! I loved how you tried to bridge the gap by comparing it to things a person from the 1800s would understand, like a 'tiny portable newspaper' and 'gossip circle.' Your cadence was wonderfully suited for a tour guide, very clear and descriptive. You really painted a picture for your bewildered 1800s companion."
+    },
+    {
+      "round": 2,
+      "scenario": "You are a restaurant waiter who must calmly tell a customer that their order has escaped the kitchen.",
+      "player_performance": "The player, as a waiter, frantically and apologetically informed the customer that their food had 'escaped' the kitchen. They expressed complete bewilderment at how this was possible, questioning if the food had 'legs' and admitting to being baffled and unsure how to explain or cover it up. They concluded by offering to make another dish, despite the chaotic explanation.",
+      "host_reaction": "Well, 'calmly' might not be the word I'd use, but that was certainly... an admission! You went from apologetic to utterly bewildered, which was a fun choice. The idea of the food having 'legs' and making a break for it was quite amusing. You definitely didn't try to cover it up, which I appreciate in a strange way!"
+    }
+  ]
+}

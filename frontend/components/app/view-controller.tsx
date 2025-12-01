@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRoomContext } from '@livekit/components-react';
 import { useSession } from '@/components/app/session-provider';
@@ -32,6 +32,7 @@ export function ViewController() {
   const room = useRoomContext();
   const isSessionActiveRef = useRef(false);
   const { appConfig, isSessionActive, startSession } = useSession();
+  const [playerName, setPlayerName] = useState<string>('');
 
   // animation handler holds a reference to stale isSessionActive value
   isSessionActiveRef.current = isSessionActive;
@@ -43,6 +44,19 @@ export function ViewController() {
     }
   };
 
+  // Handle start with player name
+  const handleStartWithName = async (name: string) => {
+    console.log('Starting improv battle for player:', name);
+    setPlayerName(name);
+    
+    // Store player name in localStorage to pass to connection
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('improv_player_name', name);
+    }
+    
+    startSession();
+  };
+
   return (
     <AnimatePresence mode="wait">
       {/* Welcome screen */}
@@ -50,8 +64,8 @@ export function ViewController() {
         <MotionWelcomeView
           key="welcome"
           {...VIEW_MOTION_PROPS}
-          startButtonText={appConfig.startButtonText}
-          onStartCall={startSession}
+          startButtonText="Start Improv Battle"
+          onStartCall={handleStartWithName}
         />
       )}
       {/* Session view */}

@@ -44,6 +44,11 @@ export function useRoom(appConfig: AppConfig) {
           window.location.origin
         );
 
+        // Get player name from localStorage
+        const playerName = typeof window !== 'undefined' 
+          ? localStorage.getItem('improv_player_name') || 'Player'
+          : 'Player';
+
         try {
           const res = await fetch(url.toString(), {
             method: 'POST',
@@ -57,6 +62,7 @@ export function useRoom(appConfig: AppConfig) {
                     agents: [{ agent_name: appConfig.agentName }],
                   }
                 : undefined,
+              playerName: playerName, // Pass player name to the API
             }),
           });
           return await res.json();

@@ -1,0 +1,194 @@
+Folder PATH listing for volume The Void
+Volume serial number is 26F7-A93C
+D:.
+|   .env.example
+|   .env.local
+|   .eslintrc.json
+|   .gitignore
+|   .prettierignore
+|   .prettierrc
+|   app-config.ts
+|   components.json
+|   eslint.config.mjs
+|   LICENSE
+|   next-env.d.ts
+|   next.config.ts
+|   package.json
+|   pnpm-lock.yaml
+|   postcss.config.mjs
+|   README.md
+|   renovate.json
+|   structure.txt
+|   taskfile.yaml
+|   TEMPLATE.md
+|   tsconfig.json
+|             
+|   
+|     
+|   |   +---app
+|   |   |   +---(app)
+|   |   |   |   |   page.js
+|   |   |   |   |   page.js.map
+|   |   |   |   |   page_client-reference-manifest.js
+|   |   |   |   |   
+|   |   |   |   \---page
+|   |   |   |           app-build-manifest.json
+|   |   |   |           app-paths-manifest.json
+|   |   |   |           build-manifest.json
+|   |   |   |           next-font-manifest.json
+|   |   |   |           react-loadable-manifest.json
+|   |   |   |           server-reference-manifest.json
+|   |   |   |           
+|   |   |   +---api
+|   |   |   |   \---connection-details
+|   |   |   |       |   route.js
+|   |   |   |       |   route.js.map
+|   |   |   |       |   route_client-reference-manifest.js
+|   |   |   |       |   
+|   |   |   |       \---route
+|   |   |   |               app-build-manifest.json
+|   |   |   |               app-paths-manifest.json
+|   |   |   |               build-manifest.json
+|   |   |   |               server-reference-manifest.json
+|   |   |   |               
+|   |   |   +---favicon.ico
+|   |   |   |   |   route.js
+|   |   |   |   |   route.js.map
+|   |   |   |   |   
+|   |   |   |   \---route
+|   |   |   |           app-build-manifest.json
+|   |   |   |           app-paths-manifest.json
+|   |   |   |           build-manifest.json
+|   |   |   |           
+|   |   |   \---_not-found
+|   |   |       |   page.js
+|   |   |       |   page.js.map
+|   |   |       |   page_client-reference-manifest.js
+|   |   |       |   
+|   |   |       \---page
+|   |   |               app-build-manifest.json
+|   |   |               app-paths-manifest.json
+|   |   |               build-manifest.json
+|   |   |               next-font-manifest.json
+|   |   |               react-loadable-manifest.json
+|   |   |               server-reference-manifest.json
+|   |   |               
+|   |   
+|   |   \---pages
+|   |       |   _app.js
+|   |       |   _app.js.map
+|   |       |   _document.js
+|   |       |   _document.js.map
+|   |       |   _error.js
+|   |       |   _error.js.map
+|   |       |   
+|   |       +---_app
+|   |       |       build-manifest.json
+|   |       |       client-build-manifest.json
+|   |       |       next-font-manifest.json
+|   |       |       pages-manifest.json
+|   |       |       react-loadable-manifest.json
+|   |       |       
+|   |       +---_document
+|   |       |       next-font-manifest.json
+|   |       |       pages-manifest.json
+|   |       |       react-loadable-manifest.json
+|   |       |       
+|   |       \---_error
+|   |               build-manifest.json
+|   |               client-build-manifest.json
+|   |               next-font-manifest.json
+|   |               pages-manifest.json
+|   |               react-loadable-manifest.json
+
+|   |   |   |   
+|   |   |   \---pages
+|   |   |           _app.js
+|   |   |           _error.js
+|   |   |           
+|   |   +---development
+|   |   |       _buildManifest.js
+|   |   |       _clientMiddlewareManifest.json
+|   |   |       _ssgManifest.js
+|   |   
+|   |           
+|   \---types
+|           routes.d.ts
+|           validator.ts
+|           
++---app
+|   |   favicon.ico
+|   |   layout.tsx
+|   |   
+|   +---(app)
+|   |       layout.tsx
+|   |       opengraph-image.tsx
+|   |       page.tsx
+|   |       
+|   +---api
+|   |   \---connection-details
+|   |           route.ts
+|   |           
+|   \---ui
+|           layout.tsx
+|           page.tsx
+|           
++---components
+|   +---app
+|   |       app.tsx
+|   |       chat-transcript.tsx
+|   |       preconnect-message.tsx
+|   |       session-provider.tsx
+|   |       session-view.tsx
+|   |       theme-toggle.tsx
+|   |       tile-layout.tsx
+|   |       view-controller.tsx
+|   |       welcome-view.tsx
+|   |       
+|   \---livekit
+|       |   alert-toast.tsx
+|       |   alert.tsx
+|       |   button.tsx
+|       |   chat-entry.tsx
+|       |   select.tsx
+|       |   shimmer-text.tsx
+|       |   toaster.tsx
+|       |   toggle.tsx
+|       |   
+|       +---agent-control-bar
+|       |   |   agent-control-bar.tsx
+|       |   |   chat-input.tsx
+|       |   |   track-device-select.tsx
+|       |   |   track-selector.tsx
+|       |   |   track-toggle.tsx
+|       |   |   
+|       |   \---hooks
+|       |           use-input-controls.ts
+|       |           use-publish-permissions.ts
+|       |           
+|       \---scroll-area
+|           |   scroll-area.tsx
+|           |   
+|           \---hooks
+|                   useAutoScroll.ts
+|                   
++---fonts
+|       CommitMono-400-Italic.otf
+|       CommitMono-400-Regular.otf
+|       CommitMono-700-Italic.otf
+|       CommitMono-700-Regular.otf
+|       
++---hooks
+|       useChatMessages.ts
+|       useConnectionTimout.tsx
+|       useDebug.ts
+|       useRoom.ts
+|       
++---lib
+|       utils.ts
+|       
+
+|       
+\---styles
+        globals.css
+        
